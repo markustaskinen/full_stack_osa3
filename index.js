@@ -1,11 +1,13 @@
+require('dotenv').config()
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
 const app = express()
+const Contact = require('./models/contact')
 
 app.use(cors())
-app.use(express.json())
 app.use(express.static('build'))
+app.use(express.json())
 
 morgan.token('content', function (req, res) { return JSON.stringify(req.body) })
 
@@ -61,7 +63,9 @@ app.get('/', (req, res) => {
 })
 
 app.get('/api/persons', (req, res) => {
-  res.json(persons)
+  Contact.find({}).then(contacts => {
+    res.json(contacts)
+  })
 })
 
 app.get('/api/info', (req, res) => {
@@ -73,6 +77,7 @@ app.get('/api/info', (req, res) => {
     )
 })
 
+/*
 const generateId = () => {
   const maxId = notes.length > 0
     ? Math.max(...notes.map(n => n.id))
@@ -83,7 +88,26 @@ const generateId = () => {
 const generateRandomId = (max) => {
   return Math.floor(Math.random() * Math.floor(max))
 }
+*/
 
+app.post('/api/persons', (req, res, next) => {
+  const body = req.body
+
+  if (!body.name || !body.number) {
+    return res.status(400).json({ error: 'content missing' })
+  }
+
+  const contact = new Contact({
+    name: body.name,
+    number: body.number,
+  })
+
+  contact.save().then(savedContact => {
+    res.json(savedContact)
+  })
+})
+
+/*pre MongoDB
 app.post('/api/persons', (request, response) => {
   const body = request.body
 
@@ -107,27 +131,46 @@ app.post('/api/persons', (request, response) => {
 
   response.json(person)
 })
+*/
 
-app.get('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id)
-  const person = persons.find(person => person.id === id)
-  if (person) {
-    response.send(
-      `<p>${person.name}<br></br>${person.number}</p>`
-    )
-  } else {
-    response.status(404).json({
-      error: `there is no contact on id ${id}`
+app.get('/api/persons/:id', (req, res, next) => {
+  Contact.findById(req.params.id)
+    .then(contact => {
+      if (contact) {
+        res.json(contact)
+      } else {
+        res.status(404).end()
+      }
+  })
+  .catch(error => next(error))
+})
+
+app.delete('/api/persons/:id', (req, res, next) => {
+  Contact.findByIdAndRemove(req.params.id)
+    .then(result => {
+      res.status(204).end()
     })
+    .catch(error => next(error))
+})
+
+const unknownEndpoint = (req, res) => {
+  res.status(404).send({ error: 'unknown endpoint' })
+}
+
+app.use(unknownEndpoint)
+
+const errorHandler = (error, req, res, next) => {
+  console.error(error.message)
+
+  if (error.name === 'CastError') {
+    return res.status(400).send({ error: 'malformatted id' })
   }
-})
 
-app.delete('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id)
-  persons = persons.filter(person => person.id !== id)
+  next(error)
+}
 
-  response.status(204).end()
-})
+
+app.use(errorHandler)
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
