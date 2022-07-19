@@ -25,10 +25,10 @@ const contactSchema = new mongoose.Schema({
 const Contact = mongoose.model('Contact', contactSchema)
 
 if (process.argv.length < 4) {
-    Contact.find({}).then(result => {
-        result.forEach(contact => {
-        console.log(contact)
-        })
+  Contact.find({}).then(result => {
+    result.forEach(contact => {
+      console.log(contact)
+    })
     mongoose.connection.close()
   })
 } else {
