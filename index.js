@@ -15,15 +15,15 @@ app.use(morgan(function (tokens, req, res) {
 //  const test = req.body.name
 //  console.log(`test: ${test}`)
   if (req.body.name) {
-  return [
-    tokens.method(req, res),
-    tokens.url(req, res),
-    tokens.status(req, res),
-    tokens.res(req, res, 'content-length'), '-',
-    tokens['response-time'](req, res), 'ms',
-    tokens.content(req, res)
-  ].join(' ')
-  } 
+    return [
+      tokens.method(req, res),
+      tokens.url(req, res),
+      tokens.status(req, res),
+      tokens.res(req, res, 'content-length'), '-',
+      tokens['response-time'](req, res), 'ms',
+      tokens.content(req, res)
+    ].join(' ')
+  }
 
   return [
     tokens.method(req, res),
@@ -32,31 +32,31 @@ app.use(morgan(function (tokens, req, res) {
     tokens.res(req, res, 'content-length'), '-',
     tokens['response-time'](req, res), 'ms',
   ].join(' ')
-  })
+})
 )
 
 let persons = [
-    {
-      "id": 1,    
-      "name": "Arto Hellas",
-      "number": "040-123456"
-    },
-    {
-      "id": 2,
-      "name": "Ada Lovelace",
-      "number": "39-44-5323523"
-    },
-    {
-      "id": 3,
-      "name": "Dan Abramov",
-      "number": "12-43-234345"
-    },
-    {
-      "id": 4,
-      "name": "Mary Poppendieck",
-      "number": "39-23-6423122"
-    }
-  ]
+  {
+    'id': 1,
+    'name': 'Arto Hellas',
+    'number': '040-123456'
+  },
+  {
+    'id': 2,
+    'name': 'Ada Lovelace',
+    'number': '39-44-5323523'
+  },
+  {
+    'id': 3,
+    'name': 'Dan Abramov',
+    'number': '12-43-234345'
+  },
+  {
+    'id': 4,
+    'name': 'Mary Poppendieck',
+    'number': '39-23-6423122'
+  }
+]
 
 app.get('/', (req, res) => {
   res.send('<h1>Hello World!</h1>')
@@ -74,7 +74,7 @@ app.get('/api/info', (req, res) => {
   res.send(
     `<p>Phonebook has info for ${personAmount} people.</p>
     <p>${date}</p>`
-    )
+  )
 })
 
 /*
@@ -105,6 +105,7 @@ app.post('/api/persons', (req, res, next) => {
   contact.save().then(savedContact => {
     res.json(savedContact)
   })
+    .catch(error => next(error))
 })
 
 /*pre MongoDB
@@ -112,8 +113,8 @@ app.post('/api/persons', (request, response) => {
   const body = request.body
 
   if (!body.name || !body.number) {
-    return response.status(400).json({ 
-      error: 'content missing' 
+    return response.status(400).json({
+      error: 'content missing'
     })
   } else if (persons.find((person) => person.name === body.name)) {
     return response.status(400).json({
@@ -141,14 +142,29 @@ app.get('/api/persons/:id', (req, res, next) => {
       } else {
         res.status(404).end()
       }
-  })
-  .catch(error => next(error))
+    })
+    .catch(error => next(error))
 })
 
 app.delete('/api/persons/:id', (req, res, next) => {
   Contact.findByIdAndRemove(req.params.id)
     .then(result => {
       res.status(204).end()
+    })
+    .catch(error => next(error))
+})
+
+app.put('/api/persons/:id', (req, res, next) => {
+  const body = req.body
+
+  const contact = {
+    name: body.name,
+    number: body.number,
+  }
+
+  Contact.findByIdAndUpdate(req.params.id, contact, { new: true })
+    .then(updatedContact => {
+      res.json(updatedContact)
     })
     .catch(error => next(error))
 })
@@ -164,6 +180,8 @@ const errorHandler = (error, req, res, next) => {
 
   if (error.name === 'CastError') {
     return res.status(400).send({ error: 'malformatted id' })
+  } else if (error.name === 'ValidationError') {
+    return res.status(400).json({ error: error.message })
   }
 
   next(error)
