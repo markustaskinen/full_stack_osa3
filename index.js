@@ -9,7 +9,7 @@ app.use(cors())
 app.use(express.static('build'))
 app.use(express.json())
 
-morgan.token('content', function (req, res) { return JSON.stringify(req.body) })
+morgan.token('content', function (req) { return JSON.stringify(req.body) })
 
 app.use(morgan(function (tokens, req, res) {
 //  const test = req.body.name
@@ -148,7 +148,7 @@ app.get('/api/persons/:id', (req, res, next) => {
 
 app.delete('/api/persons/:id', (req, res, next) => {
   Contact.findByIdAndRemove(req.params.id)
-    .then(result => {
+    .then(() => {
       res.status(204).end()
     })
     .catch(error => next(error))
@@ -162,7 +162,7 @@ app.put('/api/persons/:id', (req, res, next) => {
     number: body.number,
   }
 
-  Contact.findByIdAndUpdate(req.params.id, contact, { new: true })
+  Contact.findByIdAndUpdate(req.params.id, contact, { new: true, runValidators: true, context: 'query' })
     .then(updatedContact => {
       res.json(updatedContact)
     })
